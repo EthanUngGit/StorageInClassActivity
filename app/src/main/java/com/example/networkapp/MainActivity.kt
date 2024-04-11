@@ -2,18 +2,19 @@ package com.example.networkapp
 
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
+import android.util.Log
 import android.widget.Button
 import android.widget.EditText
 import android.widget.ImageView
 import android.widget.TextView
 import android.widget.Toast
-import com.android.volley.Request
 import com.android.volley.RequestQueue
 import com.android.volley.toolbox.JsonObjectRequest
-import com.android.volley.toolbox.StringRequest
 import com.android.volley.toolbox.Volley
 import com.squareup.picasso.Picasso
 import org.json.JSONObject
+import java.io.File
+import java.io.FileOutputStream
 
 // TODO (1: Fix any bugs)
 // TODO (2: Add function saveComic(...) to save and load comic info automatically when app starts)
@@ -26,10 +27,14 @@ class MainActivity : AppCompatActivity() {
     lateinit var numberEditText: EditText
     lateinit var showButton: Button
     lateinit var comicImageView: ImageView
+    private lateinit var file: File
+    private val internalFilename = "my_file"
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
+
+        file = File(filesDir, internalFilename)
 
         requestQueue = Volley.newRequestQueue(this)
 
@@ -40,24 +45,48 @@ class MainActivity : AppCompatActivity() {
         comicImageView = findViewById<ImageView>(R.id.comicImageView)
 
         showButton.setOnClickListener {
-            downloadComic(numberEditText.text.toString())
+            val input = numberEditText.text.toString()
+            if (input.toIntOrNull() != null) {
+                downloadComic(input)
+                saveComic()
+            } else {
+                val toastText = "Enter valid Comic (int)"
+                val duration = Toast.LENGTH_SHORT
+                val toast = Toast.makeText(this, toastText, duration)
+                toast.show()
+            }
         }
 
     }
 
-    private fun downloadComic (comicId: String) {
+    private fun downloadComic(comicId: String) {
         val url = "https://xkcd.com/$comicId/info.0.json"
-        requestQueue.add (
-            JsonObjectRequest(url, {showComic(it)}, {
-            })
-        )
-    }
+        val comicName = "$comicId"
+        var comicFile = File(filesDir, comicName)
+        if (comicFile.exists()) {
 
-    private fun showComic (comicObject: JSONObject) {
+        }
+
+        else {
+
+            requestQueue.add(
+                JsonObjectRequest(url, { showComic(it) }, {
+                }))
+            }
+        }
+
+    private fun showComic(comicObject: JSONObject) {
         titleTextView.text = comicObject.getString("title")
         descriptionTextView.text = comicObject.getString("alt")
         Picasso.get().load(comicObject.getString("img")).into(comicImageView)
     }
 
-
+    private fun saveComic() {
+        val comicId = comicObject.getString("num")
+        val comicName = "$comicId"
+        var comicFile = File(filesDir, comicName)
+        val outputStream = FileOutputStream(comicFile)
+        outputStream.write(comicObject.toString().toByteArray())
+        outputStream.close()
+    }
 }
